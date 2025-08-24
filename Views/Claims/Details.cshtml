@@ -1,0 +1,78 @@
+﻿@model WebApplication1.Models.Claim
+
+@{
+    ViewData["Title"] = "Details";
+}
+
+<h1>Details</h1>
+
+<div>
+    <h4>Claim</h4>
+    <hr />
+    <dl class="row">
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.LecturerName)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.LecturerName)
+        </dd>
+
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.HoursWorked)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.HoursWorked)
+        </dd>
+
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.HourlyRate)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.HourlyRate)
+        </dd>
+
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Notes)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Notes)
+        </dd>
+
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.Status)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.Status)
+        </dd>
+
+        <dt class="col-sm-2">
+            @Html.DisplayNameFor(model => model.SubmittedAt)
+        </dt>
+        <dd class="col-sm-10">
+            @Html.DisplayFor(model => model.SubmittedAt)
+        </dd>
+    </dl>
+</div>
+
+<!-- Supporting Documents -->
+@if (Model.Documents != null && Model.Documents.Any())
+{
+    <h4>Supporting Documents</h4>
+    <ul>
+        @foreach (var doc in Model.Documents)
+        {
+            <li>
+                <a href="@doc.FilePath" target="_blank">@doc.FileName</a>
+            </li>
+        }
+    </ul>
+}
+else
+{
+    <p><em>No supporting documents uploaded.</em></p>
+}
+
+<div>
+    <a asp-action="Edit" asp-route-id="@Model?.ClaimId">Edit</a> |
+    <a asp-action="Index">Back to List</a>
+</div>
