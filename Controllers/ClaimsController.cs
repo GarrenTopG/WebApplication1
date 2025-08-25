@@ -34,7 +34,7 @@ namespace WebApplication1.Controllers
             }
 
             var claim = await _context.Claims
-                .Include(c => c.Documents)   // 👈 load supporting documents
+                .Include(c => c.Documents)   // load supporting documents
                 .FirstOrDefaultAsync(m => m.ClaimId == id);
 
             if (claim == null)
@@ -81,7 +81,8 @@ namespace WebApplication1.Controllers
         {
             if (id != claim.ClaimId)
             {
-                return NotFound();
+                TempData["Error"] = "Claim ID mismatch.";
+                return RedirectToAction(nameof(Index));
             }
 
             if (ModelState.IsValid)
@@ -125,13 +126,19 @@ namespace WebApplication1.Controllers
                         }
 
                         await _context.SaveChangesAsync();
+                        TempData["Message"] = "Claim updated successfully with new documents.";
+                    }
+                    else
+                    {
+                        TempData["Message"] = "Claim updated successfully.";
                     }
                 }
                 catch (DbUpdateConcurrencyException)
                 {
                     if (!ClaimExists(claim.ClaimId))
                     {
-                        return NotFound();
+                        TempData["Error"] = "Claim no longer exists.";
+                        return RedirectToAction(nameof(Index));
                     }
                     else
                     {
@@ -140,8 +147,11 @@ namespace WebApplication1.Controllers
                 }
                 return RedirectToAction(nameof(Index));
             }
+
+            TempData["Error"] = "Failed to update claim. Please check the form and try again.";
             return View(claim);
         }
+
 
 
         // GET: Claims/Create
@@ -195,12 +205,20 @@ namespace WebApplication1.Controllers
                     }
 
                     await _context.SaveChangesAsync();
+                    TempData["Message"] = "Claim created successfully with supporting documents.";
+                }
+                else
+                {
+                    TempData["Message"] = "Claim created successfully.";
                 }
 
                 return RedirectToAction(nameof(Index));
             }
+
+            TempData["Error"] = "Failed to create claim. Please check the form and try again.";
             return View(claim);
         }
+
 
 
 
@@ -231,35 +249,53 @@ namespace WebApplication1.Controllers
             if (claim != null)
             {
                 _context.Claims.Remove(claim);
+                await _context.SaveChangesAsync();
+
+                TempData["Message"] = "Claim deleted successfully.";
+            }
+            else
+            {
+                TempData["Error"] = "Claim not found. It may have already been deleted.";
             }
 
-            await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
+
 
         // Approve a claim
         public async Task<IActionResult> Approve(int id)
         {
             var claim = await _context.Claims.FindAsync(id);
-            if (claim == null) return NotFound();
+            if (claim == null)
+            {
+                TempData["Error"] = "Claim not found.";
+                return RedirectToAction("PendingClaims");
+            }
 
             claim.Status = ClaimStatus.Approved;
             await _context.SaveChangesAsync();
 
-            return RedirectToAction("Index"); // or PendingClaims
+            TempData["Message"] = "Claim approved successfully.";
+            return RedirectToAction("PendingClaims");
         }
 
         // Reject a claim
         public async Task<IActionResult> Reject(int id)
         {
             var claim = await _context.Claims.FindAsync(id);
-            if (claim == null) return NotFound();
+            if (claim == null)
+            {
+                TempData["Error"] = "Claim not found.";
+                return RedirectToAction("PendingClaims");
+            }
 
             claim.Status = ClaimStatus.Rejected;
             await _context.SaveChangesAsync();
 
-            return RedirectToAction("Index"); // or PendingClaims
+            TempData["Message"] = "Claim rejected successfully.";
+            return RedirectToAction("PendingClaims");
         }
+
 
 
         private bool ClaimExists(int id)
