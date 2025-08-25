@@ -43,7 +43,20 @@ namespace WebApplication1.Controllers
             }
 
             return View(claim);
-        }       
+        }
+
+        // GET: Claims/PendingClaims
+        public async Task<IActionResult> PendingClaims()
+        {
+            // Fetch all claims with Status = Pending
+            var pendingClaims = await _context.Claims
+                .Where(c => c.Status == ClaimStatus.Pending) // only pending
+                .Include(c => c.Documents)                   // include supporting documents
+                .ToListAsync();
+
+            return View(pendingClaims); // returns the PendingClaims view
+        }
+
 
         // GET: Claims/Edit/5
         public async Task<IActionResult> Edit(int? id)
@@ -223,6 +236,31 @@ namespace WebApplication1.Controllers
             await _context.SaveChangesAsync();
             return RedirectToAction(nameof(Index));
         }
+
+        // Approve a claim
+        public async Task<IActionResult> Approve(int id)
+        {
+            var claim = await _context.Claims.FindAsync(id);
+            if (claim == null) return NotFound();
+
+            claim.Status = ClaimStatus.Approved;
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction("Index"); // or PendingClaims
+        }
+
+        // Reject a claim
+        public async Task<IActionResult> Reject(int id)
+        {
+            var claim = await _context.Claims.FindAsync(id);
+            if (claim == null) return NotFound();
+
+            claim.Status = ClaimStatus.Rejected;
+            await _context.SaveChangesAsync();
+
+            return RedirectToAction("Index"); // or PendingClaims
+        }
+
 
         private bool ClaimExists(int id)
         {

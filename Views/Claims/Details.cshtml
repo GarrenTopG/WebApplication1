@@ -55,7 +55,7 @@
 </div>
 
 <!-- Supporting Documents -->
-@if (Model.Documents != null && Model.Documents.Any())
+@if (Model?.Documents != null && Model.Documents.Any())
 {
     <h4>Supporting Documents</h4>
     <ul>
@@ -76,3 +76,34 @@ else
     <a asp-action="Edit" asp-route-id="@Model?.ClaimId">Edit</a> |
     <a asp-action="Index">Back to List</a>
 </div>
+
+@if (Model?.Documents != null && Model.Documents.Any())
+{
+    <h4>Supporting Documents</h4>
+    <table class="table table-bordered">
+        <thead>
+            <tr>
+                <th>File Name</th>
+                <th>Uploaded At</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach (var doc in Model.Documents)
+            {
+                <tr>
+                    <td>@doc.FileName</td>
+                    <td>@doc.UploadedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                    <td>
+                        <a asp-controller="Documents" asp-action="Download" asp-route-id="@doc.DocumentId" class="btn btn-sm btn-primary">Download</a>
+                        <a asp-controller="Documents" asp-action="Delete" asp-route-id="@doc.DocumentId" class="btn btn-sm btn-danger">Delete</a>
+                    </td>
+                </tr>
+            }
+        </tbody>
+    </table>
+}
+else
+{
+    <p><em>No supporting documents uploaded.</em></p>
+}
