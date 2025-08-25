@@ -20,10 +20,23 @@ namespace WebApplication1.Controllers
         }
 
         // GET: Claims
-        public async Task<IActionResult> Index()
+        // GET: Claims
+        public async Task<IActionResult> Index(string searchString)
         {
-            return View(await _context.Claims.ToListAsync());
+            var claims = from c in _context.Claims
+                         select c;
+
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                claims = claims.Where(c => c.LecturerName.Contains(searchString)
+                                       || c.Notes.Contains(searchString));
+            }
+
+            ViewData["CurrentFilter"] = searchString;
+
+            return View(await claims.ToListAsync());
         }
+
 
         // GET: Claims/Details/5
         public async Task<IActionResult> Details(int? id)
@@ -46,16 +59,23 @@ namespace WebApplication1.Controllers
         }
 
         // GET: Claims/PendingClaims
-        public async Task<IActionResult> PendingClaims()
-        {
-            // Fetch all claims with Status = Pending
-            var pendingClaims = await _context.Claims
-                .Where(c => c.Status == ClaimStatus.Pending) // only pending
-                .Include(c => c.Documents)                   // include supporting documents
-                .ToListAsync();
+public async Task<IActionResult> PendingClaims(string searchString)
+{
+    var pendingClaims = from c in _context.Claims
+                        where c.Status == ClaimStatus.Pending
+                        select c;
 
-            return View(pendingClaims); // returns the PendingClaims view
-        }
+    if (!string.IsNullOrEmpty(searchString))
+    {
+        pendingClaims = pendingClaims.Where(c => c.LecturerName.Contains(searchString) 
+                                              || c.Notes.Contains(searchString));
+    }
+
+    ViewData["CurrentFilter"] = searchString;
+
+    return View(await pendingClaims.ToListAsync());
+}
+                            
 
 
         // GET: Claims/Edit/5
