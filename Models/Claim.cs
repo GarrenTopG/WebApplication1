@@ -5,6 +5,9 @@ using Microsoft.EntityFrameworkCore;   // needed for [Precision]
 
 namespace WebApplication1.Models
 {
+
+    // Enum for claim status (just a set of named constants.)
+    // just storing "Approved" or "Rejected" strings.
     public enum ClaimStatus
     {
         Pending,
@@ -15,6 +18,7 @@ namespace WebApplication1.Models
     public class Claim
     {
         [Key]  // primary key
+        // ClaimId is the unique identifier for each claim (primary key).
         public int ClaimId { get; set; }
 
         [Required(ErrorMessage = "Lecturer name is required")]

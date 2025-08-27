@@ -4,6 +4,8 @@ using WebApplication1.Models;
 using Microsoft.EntityFrameworkCore;
 using System.IO;
 
+
+// Controller to manage supporting documents
 public class DocumentsController : Controller
 {
     private readonly ApplicationDbContext _context;

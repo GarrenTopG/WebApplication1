@@ -6,6 +6,7 @@ namespace WebApplication1.Models
     public class SupportingDocument
     {
         [Key]  // primary key
+        // Every document gets a unique ID
         public int DocumentId { get; set; }
 
         [Required]  // foreign key

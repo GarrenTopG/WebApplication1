@@ -31,11 +31,8 @@
                 <td>@claim.TotalAmount</td>
                 <td>@claim.SubmittedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
                 <td>
-                    <span class="badge @(claim.Status == WebApplication1.Models.ClaimStatus.Pending ? "badge-warning" :
-                                                                 claim.Status == WebApplication1.Models.ClaimStatus.Approved ? "badge-success" :
-                                                                 "badge-danger")">
-                    @claim.Status
-                </span>
+                    <span class="badge bg-warning text-dark">@claim.Status</span>
+
             </td>
             <td>
                 <a asp-action="Approve" asp-route-id="@claim.ClaimId" class="btn btn-success btn-sm">Approve</a>

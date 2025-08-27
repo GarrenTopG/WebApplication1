@@ -10,17 +10,19 @@ using WebApplication1.Models;
 
 namespace WebApplication1.Controllers
 {
-    public class ClaimsController : Controller
+    public class ClaimsController : Controller //controls how claims are handled
     {
         private readonly ApplicationDbContext _context;
 
         public ClaimsController(ApplicationDbContext context)
         {
-            _context = context;
+            _context = context;//This _context variable is used everywhere to fetch, add, update, and delete claims.
         }
+        //Connects the controller to the database through ApplicationDbContext.
 
         // GET: Claims
-        // GET: Claims
+        // Shows all claims in a table.
+        //If the user types something in the search bar, it filters by LecturerName or Notes.
         public async Task<IActionResult> Index(string searchString)
         {
             var claims = from c in _context.Claims
@@ -59,26 +61,29 @@ namespace WebApplication1.Controllers
         }
 
         // GET: Claims/PendingClaims
-public async Task<IActionResult> PendingClaims(string searchString)
-{
-    var pendingClaims = from c in _context.Claims
+
+        //Shows only claims waiting for approval
+        //Supports searching
+        public async Task<IActionResult> PendingClaims(string searchString)
+        {
+            var pendingClaims = from c in _context.Claims
                         where c.Status == ClaimStatus.Pending
                         select c;
 
-    if (!string.IsNullOrEmpty(searchString))
-    {
-        pendingClaims = pendingClaims.Where(c => c.LecturerName.Contains(searchString) 
+            if (!string.IsNullOrEmpty(searchString))
+            {
+                pendingClaims = pendingClaims.Where(c => c.LecturerName.Contains(searchString) 
                                               || c.Notes.Contains(searchString));
-    }
+            }
 
     ViewData["CurrentFilter"] = searchString;
 
-    return View(await pendingClaims.ToListAsync());
-}
-                            
+            return View(await pendingClaims.ToListAsync());
+        }
 
 
         // GET: Claims/Edit/5
+        //Loads the existing claim into a form so the user can edit.
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null)
@@ -95,6 +100,8 @@ public async Task<IActionResult> PendingClaims(string searchString)
         }
 
         // POST: Claims/Edit/5
+        // Updates claim info in the database.
+        // Handles file uploads (saves them in wwwroot/uploads).
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, Claim claim, List<IFormFile>? files)
@@ -175,12 +182,15 @@ public async Task<IActionResult> PendingClaims(string searchString)
 
 
         // GET: Claims/Create
+        // Shows a blank form for a new claim.
         public IActionResult Create()
         {
             return View();
         }
 
         // POST: Claims/Create
+        // Saves the new claim to the database.
+        // Also saves supporting documents if uploaded.
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(Claim claim, List<IFormFile>? files)
@@ -243,6 +253,7 @@ public async Task<IActionResult> PendingClaims(string searchString)
 
 
         // GET: Claims/Delete/5
+        // Shows a confirmation page before deleting a claim.
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null)
@@ -261,6 +272,7 @@ public async Task<IActionResult> PendingClaims(string searchString)
         }
 
         // POST: Claims/Delete/5
+        //Actually deletes the claim from the database.
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
