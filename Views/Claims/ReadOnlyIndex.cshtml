@@ -1,9 +1,9 @@
 ﻿@model IEnumerable<WebApplication1.Models.Claim>
 
-<h1>Pending Claims</h1>
+<h1>All Claims</h1>
 
-<!-- Link to All Claims (ReadOnly Index) -->
-<a asp-action="ReadOnlyIndex" class="btn btn-secondary mb-3">View All Claims</a>
+<!-- Link back to Pending Claims -->
+<a asp-action="PendingClaims" class="btn btn-secondary mb-3">View Pending Claims</a>
 
 <form method="get" class="mb-3">
     <div class="input-group">
@@ -33,16 +33,13 @@
                 <td>@claim.HourlyRate</td>
                 <td>@claim.TotalAmount</td>
                 <td>@claim.SubmittedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                <td>@claim.Status</td>
                 <td>
-                    <span class="badge bg-warning text-dark">@claim.Status</span>
-                </td>
-                <td>
-                    <a asp-action="Approve" asp-route-id="@claim.ClaimId" class="btn btn-success btn-sm">Approve</a>
-                    <a asp-action="Reject" asp-route-id="@claim.ClaimId" class="btn btn-danger btn-sm">Reject</a>
                     <a asp-action="Details" asp-route-id="@claim.ClaimId" class="btn btn-info btn-sm">View</a>
+                    <a asp-action="Edit" asp-route-id="@claim.ClaimId" class="btn btn-warning btn-sm">Edit</a>
+                    <a asp-action="Delete" asp-route-id="@claim.ClaimId" class="btn btn-danger btn-sm">Delete</a>
                 </td>
             </tr>
         }
     </tbody>
 </table>
-
