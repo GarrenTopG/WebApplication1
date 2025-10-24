@@ -1,12 +1,13 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Mvc;
-using Microsoft.AspNetCore.Mvc.Rendering;
 using Microsoft.EntityFrameworkCore;
 using WebApplication1.Data;
 using WebApplication1.Models;
+using AppClaim = WebApplication1.Models.Claim;
 
 namespace WebApplication1.Controllers
 {
@@ -22,8 +23,8 @@ namespace WebApplication1.Controllers
         // GET: Claims
         public async Task<IActionResult> Index(string searchString)
         {
-            var claims = from c in _context.Claims
-                         select c;
+            var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+            var claims = _context.Claims.Where(c => c.UserId == userId);
 
             if (!string.IsNullOrEmpty(searchString))
             {
@@ -36,11 +37,9 @@ namespace WebApplication1.Controllers
         }
 
         // GET: Claims/ReadOnlyIndex
-        // All claims without the "Create New" button
         public async Task<IActionResult> ReadOnlyIndex(string searchString)
         {
-            var claims = from c in _context.Claims
-                         select c;
+            var claims = _context.Claims.AsQueryable();
 
             if (!string.IsNullOrEmpty(searchString))
             {
@@ -55,9 +54,7 @@ namespace WebApplication1.Controllers
         // GET: Claims/PendingClaims
         public async Task<IActionResult> PendingClaims(string searchString)
         {
-            var pendingClaims = from c in _context.Claims
-                                where c.Status == ClaimStatus.Pending
-                                select c;
+            var pendingClaims = _context.Claims.Where(c => c.Status == ClaimStatus.Pending);
 
             if (!string.IsNullOrEmpty(searchString))
             {
@@ -72,15 +69,13 @@ namespace WebApplication1.Controllers
         // GET: Claims/Details/5
         public async Task<IActionResult> Details(int? id)
         {
-            if (id == null || _context.Claims == null)
-                return NotFound();
+            if (id == null || _context.Claims == null) return NotFound();
 
             var claim = await _context.Claims
                 .Include(c => c.Documents)
                 .FirstOrDefaultAsync(m => m.ClaimId == id);
 
-            if (claim == null)
-                return NotFound();
+            if (claim == null) return NotFound();
 
             return View(claim);
         }
@@ -99,7 +94,7 @@ namespace WebApplication1.Controllers
         // POST: Claims/Edit/5
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(int id, Claim claim, List<IFormFile>? files)
+        public async Task<IActionResult> Edit(int id, AppClaim claim, List<IFormFile>? files)
         {
             if (id != claim.ClaimId)
             {
@@ -123,23 +118,19 @@ namespace WebApplication1.Controllers
                         {
                             if (file.Length > 0)
                             {
-                                var uniqueFileName = Guid.NewGuid().ToString() + "_" + file.FileName;
+                                var uniqueFileName = Guid.NewGuid() + "_" + file.FileName;
                                 var filePath = Path.Combine(uploadsFolder, uniqueFileName);
 
-                                using (var stream = new FileStream(filePath, FileMode.Create))
-                                {
-                                    await file.CopyToAsync(stream);
-                                }
+                                using var stream = new FileStream(filePath, FileMode.Create);
+                                await file.CopyToAsync(stream);
 
-                                var document = new SupportingDocument
+                                _context.SupportingDocuments.Add(new SupportingDocument
                                 {
                                     ClaimId = claim.ClaimId,
                                     FileName = file.FileName,
                                     FilePath = "/uploads/" + uniqueFileName,
                                     UploadedAt = DateTime.UtcNow
-                                };
-
-                                _context.SupportingDocuments.Add(document);
+                                });
                             }
                         }
 
@@ -171,8 +162,7 @@ namespace WebApplication1.Controllers
         {
             if (id == null) return NotFound();
 
-            var claim = await _context.Claims
-                .FirstOrDefaultAsync(m => m.ClaimId == id);
+            var claim = await _context.Claims.FirstOrDefaultAsync(m => m.ClaimId == id);
 
             if (claim == null) return NotFound();
 
@@ -208,13 +198,25 @@ namespace WebApplication1.Controllers
         // POST: Claims/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Claim claim, List<IFormFile>? files)
+        public async Task<IActionResult> Create(AppClaim claim, List<IFormFile>? files)
         {
+            // Assign the currently logged-in user
+            claim.UserId = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+            claim.LecturerName = User.Identity?.Name ?? "Unknown Lecturer";
+
+            // Set default values if not provided
+            claim.SubmittedAt = claim.SubmittedAt == default ? DateTime.UtcNow : claim.SubmittedAt;
+            claim.Status = claim.Status; // optional: can default to Pending if desired
+            if (claim.Status == default)
+                claim.Status = ClaimStatus.Pending;
+
+            // Validate model manually
             if (ModelState.IsValid)
             {
                 _context.Add(claim);
                 await _context.SaveChangesAsync();
 
+                // Handle file uploads
                 if (files != null && files.Count > 0)
                 {
                     var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
@@ -246,10 +248,16 @@ namespace WebApplication1.Controllers
                 TempData["Message"] = "Claim created successfully.";
                 return RedirectToAction(nameof(Index));
             }
-
-            TempData["Error"] = "Failed to create claim. Check the form and try again.";
-            return View(claim);
+            else
+            {
+                // Show detailed validation errors
+                var errors = ModelState.Values.SelectMany(v => v.Errors)
+                                              .Select(e => e.ErrorMessage);
+                TempData["Error"] = "Validation failed: " + string.Join("; ", errors);
+                return View(claim);
+            }
         }
+
 
         // Approve a claim
         public async Task<IActionResult> Approve(int id)
@@ -291,4 +299,3 @@ namespace WebApplication1.Controllers
         }
     }
 }
-

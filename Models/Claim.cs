@@ -26,6 +26,8 @@ namespace WebApplication1.Models
         [Display(Name = "Lecturer Name")]
         public string LecturerName { get; set; } = string.Empty;
 
+        public string UserId { get; set; } = string.Empty;
+
         [Range(1, 500, ErrorMessage = "Hours worked must be between 1 and 500")]
         [Precision(18, 2)]
         [Display(Name = "Hours Worked")]
