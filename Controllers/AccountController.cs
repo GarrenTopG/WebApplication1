@@ -55,9 +55,9 @@ namespace WebApplication1.Controllers
                         case "Lecturer":
                             return RedirectToAction("Index", "Claims"); // ✅ reuse ClaimsController Index view
                         case "Coordinator":
-                            return RedirectToAction("Pending", "Claims"); // example: pending claims for coordinator
+                            return RedirectToAction("PendingClaims", "Claims"); // example: pending claims for coordinator
                         case "Manager":
-                            return RedirectToAction("Index", "Claims"); // or a manager-specific page if you have
+                            return RedirectToAction("PendingClaims", "Claims"); // or a manager-specific page if you have
                         default:
                             return RedirectToAction("Index", "Home");
                     }
