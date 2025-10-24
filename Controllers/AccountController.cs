@@ -49,19 +49,64 @@ namespace WebApplication1.Controllers
 
                 if (result.Succeeded)
                 {
-                    // Redirect to a dashboard based on role
-                    if (user.Role == "Lecturer")
-                        return RedirectToAction("Dashboard", "Lecturer");
-                    else if (user.Role == "Coordinator")
-                        return RedirectToAction("Dashboard", "Coordinator");
-                    else if (user.Role == "Manager")
-                        return RedirectToAction("Dashboard", "Manager");
+                    // Redirect based on user role
+                    switch (user.Role)
+                    {
+                        case "Lecturer":
+                            return RedirectToAction("Index", "Claims"); // ✅ reuse ClaimsController Index view
+                        case "Coordinator":
+                            return RedirectToAction("Pending", "Claims"); // example: pending claims for coordinator
+                        case "Manager":
+                            return RedirectToAction("Index", "Claims"); // or a manager-specific page if you have
+                        default:
+                            return RedirectToAction("Index", "Home");
+                    }
 
-                    return RedirectToAction("Index", "Home");
                 }
+
             }
 
             ModelState.AddModelError(string.Empty, "Invalid login attempt.");
+            return View(model);
+        }
+
+        // GET: Register
+        [HttpGet]
+        public IActionResult Register()
+        {
+            return View();
+        }
+
+        // POST: Register
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        public async Task<IActionResult> Register(RegisterViewModel model)
+        {
+            if (!ModelState.IsValid)
+                return View(model);
+
+            var user = new User
+            {
+                UserName = model.Username,
+                Email = model.Email,
+                Role = model.Role
+            };
+
+            var result = await _userManager.CreateAsync(user, model.Password);
+
+            if (result.Succeeded)
+            {
+                // Add the user to a role in Identity
+                if (!await _userManager.IsInRoleAsync(user, model.Role))
+                    await _userManager.AddToRoleAsync(user, model.Role);
+
+                TempData["Message"] = "Registration successful! Please log in.";
+                return RedirectToAction("Login", "Account");
+            }
+
+            foreach (var error in result.Errors)
+                ModelState.AddModelError("", error.Description);
+
             return View(model);
         }
 
