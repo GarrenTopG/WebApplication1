@@ -1,61 +1,63 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.ComponentModel.DataAnnotations;
-using Microsoft.EntityFrameworkCore;   // needed for [Precision]
+using Microsoft.AspNetCore.Mvc.ModelBinding;
 
 namespace WebApplication1.Models
 {
-
-    // Enum for claim status (just a set of named constants.)
-    // just storing "Approved" or "Rejected" strings.
-    public enum ClaimStatus
-    {
-        Pending,
-        Approved,
-        Rejected
-    }
-
     public class Claim
     {
-        [Key]  // primary key
-        // ClaimId is the unique identifier for each claim (primary key).
-        public int ClaimId { get; set; }
+        public int Id { get; set; }
+
+        // Links claim to logged-in user
+        [BindNever]
+        public string? UserId { get; set; }
 
         [Required(ErrorMessage = "Lecturer name is required")]
         [StringLength(100)]
-        [Display(Name = "Lecturer Name")]
-        public string LecturerName { get; set; } = string.Empty;
+        public string LecturerName { get; set; }
 
-        public string UserId { get; set; } = string.Empty;
-
-        [Range(1, 500, ErrorMessage = "Hours worked must be between 1 and 500")]
-        [Precision(18, 2)]
-        [Display(Name = "Hours Worked")]
+        [Required(ErrorMessage = "Hours Worked is required")]
+        [Range(1, 176, ErrorMessage = "Hours cannot exceed 176 hours per month")]
         public decimal HoursWorked { get; set; }
 
-        [Range(50, 1000, ErrorMessage = "Hourly rate must be between 50 and 1000")]
-        [Precision(18, 2)]
-        [Display(Name = "Hourly Rate")]
+        [Required(ErrorMessage = "Hourly rate is required")]
+        [Range(50, 1000, ErrorMessage = "Rate must be between R50 and R1000")]
         public decimal HourlyRate { get; set; }
 
-        // calculated field (not mapped directly)
-        [Precision(18, 2)]
-        [Display(Name = "Total Amount")]
-        public decimal TotalAmount => HoursWorked * HourlyRate;
+        // --- TOTAL AMOUNT ---
+        [BindNever]  // <-- REQUIRED FIX
+        public decimal TotalAmount { get; set; }
 
         [StringLength(500)]
-        [Display(Name = "Additional Notes")]
-        public string? Notes { get; set; }
+        public string Notes { get; set; }
 
         [Required]
-        [Display(Name = "Claim Status")]
-        public ClaimStatus Status { get; set; } = ClaimStatus.Pending;
+        public ClaimStatus Status { get; set; }
 
+        [Required(ErrorMessage = "Submitted date is required")]
+        [DataType(DataType.DateTime)]
         [Display(Name = "Submitted At")]
-        public DateTime SubmittedAt { get; set; } = DateTime.UtcNow;
+        [FutureDateNotAllowed]
+        public DateTime SubmittedAt { get; set; }
 
-        // navigation property (1 claim can have many docs)
         public ICollection<SupportingDocument> Documents { get; set; } = new List<SupportingDocument>();
+    }
+
+    public class FutureDateNotAllowed : ValidationAttribute
+    {
+        protected override ValidationResult IsValid(object value, ValidationContext validationContext)
+        {
+            if (value == null)
+                return new ValidationResult("Date is required");
+
+            DateTime inputDate = (DateTime)value;
+
+            if (inputDate > DateTime.Now)
+                return new ValidationResult("Date cannot be in the future");
+
+            return ValidationResult.Success;
+        }
     }
 }
 

@@ -69,11 +69,11 @@ namespace WebApplication1.Controllers
         // GET: Claims/Details/5
         public async Task<IActionResult> Details(int? id)
         {
-            if (id == null || _context.Claims == null) return NotFound();
+            if (id == null) return NotFound();
 
             var claim = await _context.Claims
                 .Include(c => c.Documents)
-                .FirstOrDefaultAsync(m => m.ClaimId == id);
+                .FirstOrDefaultAsync(m => m.Id == id);
 
             if (claim == null) return NotFound();
 
@@ -96,11 +96,14 @@ namespace WebApplication1.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, AppClaim claim, List<IFormFile>? files)
         {
-            if (id != claim.ClaimId)
+            if (id != claim.Id)
             {
                 TempData["Error"] = "Claim ID mismatch.";
                 return RedirectToAction(nameof(Index));
             }
+
+            // --- Auto-calculate TotalAmount ---
+            claim.TotalAmount = claim.HoursWorked * claim.HourlyRate;
 
             if (ModelState.IsValid)
             {
@@ -126,7 +129,7 @@ namespace WebApplication1.Controllers
 
                                 _context.SupportingDocuments.Add(new SupportingDocument
                                 {
-                                    ClaimId = claim.ClaimId,
+                                    ClaimId = claim.Id,
                                     FileName = file.FileName,
                                     FilePath = "/uploads/" + uniqueFileName,
                                     UploadedAt = DateTime.UtcNow
@@ -144,7 +147,7 @@ namespace WebApplication1.Controllers
                 }
                 catch (DbUpdateConcurrencyException)
                 {
-                    if (!ClaimExists(claim.ClaimId))
+                    if (!ClaimExists(claim.Id))
                         TempData["Error"] = "Claim no longer exists.";
                     else
                         throw;
@@ -157,12 +160,13 @@ namespace WebApplication1.Controllers
             return View(claim);
         }
 
+
         // GET: Claims/Delete/5
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();
 
-            var claim = await _context.Claims.FirstOrDefaultAsync(m => m.ClaimId == id);
+            var claim = await _context.Claims.FirstOrDefaultAsync(m => m.Id == id);
 
             if (claim == null) return NotFound();
 
@@ -200,23 +204,25 @@ namespace WebApplication1.Controllers
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(AppClaim claim, List<IFormFile>? files)
         {
-            // Assign the currently logged-in user
-            claim.UserId = User.FindFirstValue(System.Security.Claims.ClaimTypes.NameIdentifier);
+            // Auto-fill user info
+            claim.UserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             claim.LecturerName = User.Identity?.Name ?? "Unknown Lecturer";
 
-            // Set default values if not provided
-            claim.SubmittedAt = claim.SubmittedAt == default ? DateTime.UtcNow : claim.SubmittedAt;
-            claim.Status = claim.Status; // optional: can default to Pending if desired
+            if (claim.SubmittedAt == default)
+                claim.SubmittedAt = DateTime.UtcNow;
+
             if (claim.Status == default)
                 claim.Status = ClaimStatus.Pending;
 
-            // Validate model manually
+            // Auto-calculate TotalAmount
+            claim.TotalAmount = claim.HoursWorked * claim.HourlyRate;
+
             if (ModelState.IsValid)
             {
                 _context.Add(claim);
                 await _context.SaveChangesAsync();
 
-                // Handle file uploads
+                // Handle file uploads (existing code)
                 if (files != null && files.Count > 0)
                 {
                     var uploadsFolder = Path.Combine(Directory.GetCurrentDirectory(), "wwwroot/uploads");
@@ -234,7 +240,7 @@ namespace WebApplication1.Controllers
 
                             _context.SupportingDocuments.Add(new SupportingDocument
                             {
-                                ClaimId = claim.ClaimId,
+                                ClaimId = claim.Id,
                                 FileName = file.FileName,
                                 FilePath = "/uploads/" + uniqueFileName,
                                 UploadedAt = DateTime.UtcNow
@@ -248,14 +254,11 @@ namespace WebApplication1.Controllers
                 TempData["Message"] = "Claim created successfully.";
                 return RedirectToAction(nameof(Index));
             }
-            else
-            {
-                // Show detailed validation errors
-                var errors = ModelState.Values.SelectMany(v => v.Errors)
-                                              .Select(e => e.ErrorMessage);
-                TempData["Error"] = "Validation failed: " + string.Join("; ", errors);
-                return View(claim);
-            }
+
+            var errors = ModelState.Values.SelectMany(v => v.Errors)
+                                          .Select(e => e.ErrorMessage);
+            TempData["Error"] = "Validation failed: " + string.Join("; ", errors);
+            return View(claim);
         }
 
 
@@ -295,7 +298,8 @@ namespace WebApplication1.Controllers
 
         private bool ClaimExists(int id)
         {
-            return _context.Claims.Any(e => e.ClaimId == id);
+            return _context.Claims.Any(e => e.Id == id);
         }
     }
 }
+

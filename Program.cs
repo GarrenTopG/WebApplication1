@@ -2,6 +2,7 @@
 using Microsoft.EntityFrameworkCore;
 using WebApplication1.Data;
 using WebApplication1.Models;
+using WebApplication1.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -23,6 +24,9 @@ builder.Services.AddIdentity<User, IdentityRole>(options =>
 builder.Services.AddControllersWithViews();
 builder.Services.AddRazorPages();
 builder.Services.AddSession();
+
+// Register services
+builder.Services.AddScoped<ClaimVerificationService>();
 
 var app = builder.Build();
 

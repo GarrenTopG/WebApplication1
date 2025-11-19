@@ -12,26 +12,41 @@
     <div class="col-md-4">
         <form asp-action="Create" enctype="multipart/form-data">
             <div asp-validation-summary="ModelOnly" class="text-danger"></div>
+
             <div class="form-group">
                 <label asp-for="LecturerName" class="control-label"></label>
                 <input asp-for="LecturerName" class="form-control" />
                 <span asp-validation-for="LecturerName" class="text-danger"></span>
             </div>
+
             <div class="form-group">
                 <label asp-for="HoursWorked" class="control-label"></label>
-                <input asp-for="HoursWorked" class="form-control" />
+                <input asp-for="HoursWorked" class="form-control" id="HoursWorked" />
                 <span asp-validation-for="HoursWorked" class="text-danger"></span>
             </div>
+
             <div class="form-group">
                 <label asp-for="HourlyRate" class="control-label"></label>
-                <input asp-for="HourlyRate" class="form-control" />
+                <input asp-for="HourlyRate" class="form-control" id="HourlyRate" />
                 <span asp-validation-for="HourlyRate" class="text-danger"></span>
             </div>
+
+            <div class="form-group">
+                <label>Total Amount</label>
+
+                <input type="text" class="form-control" id="TotalAmountDisplay" readonly />
+
+                <input type="hidden" asp-for="TotalAmount" id="TotalAmount" />
+            </div>
+
+
+
             <div class="form-group">
                 <label asp-for="Notes" class="control-label"></label>
                 <input asp-for="Notes" class="form-control" />
                 <span asp-validation-for="Notes" class="text-danger"></span>
             </div>
+
             <div class="form-group">
                 <label asp-for="Status" class="control-label"></label>
                 <select asp-for="Status" class="form-control"
@@ -39,18 +54,22 @@
                 </select>
                 <span asp-validation-for="Status" class="text-danger"></span>
             </div>
+
             <div class="form-group">
                 <label asp-for="SubmittedAt" class="control-label"></label>
-                <input asp-for="SubmittedAt" class="form-control" />
+                <input asp-for="SubmittedAt" class="form-control" type="datetime-local" />
                 <span asp-validation-for="SubmittedAt" class="text-danger"></span>
             </div>
+
             <div class="form-group">
                 <input type="submit" value="Create" class="btn btn-primary" />
             </div>
+
             <div class="form-group">
                 <label for="files">Upload Supporting Documents</label>
                 <input type="file" name="files" multiple class="form-control" />
             </div>
+
         </form>
     </div>
 </div>
@@ -59,6 +78,101 @@
     <a asp-action="Index">Back to List</a>
 </div>
 
+
 @section Scripts {
-    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    @{
+        await Html.RenderPartialAsync("_ValidationScriptsPartial");
+    }
+
+    <!-- AUTO CALCULATE TOTAL AMOUNT -->
+    <script>
+        function calculateTotal() {
+            let hours = parseFloat(document.getElementById("HoursWorked").value) || 0;
+            let rate = parseFloat(document.getElementById("HourlyRate").value) || 0;
+            let total = hours * rate;
+
+            document.getElementById("TotalAmountDisplay").value = total.toFixed(2);
+
+            // Save to hidden field
+            document.getElementById("TotalAmount").value = total.toFixed(2);
+        }
+
+        document.getElementById("HoursWorked").addEventListener("input", calculateTotal);
+        document.getElementById("HourlyRate").addEventListener("input", calculateTotal);
+
+        // Run once on page load
+        calculateTotal();
+    </script>
+
+
+    <!-- VALIDATION SCRIPT -->
+    <script>
+        $(document).ready(function () {
+
+            // Fix jQuery Validate to parse datetime-local correctly
+            $.validator.methods.date = function (value, element) {
+                return this.optional(element) || !isNaN(new Date(value).getTime());
+            };
+
+            // Custom rule: date cannot be in the future
+            $.validator.addMethod("notFutureDate", function (value) {
+                if (!value) return false;
+
+                let inputDate = new Date(value);
+                let now = new Date();
+                return inputDate <= now;
+            }, "Date cannot be in the future");
+
+            // Apply validation rules
+            $("form").validate({
+                rules: {
+                    LecturerName: {
+                        required: true,
+                        minlength: 3
+                    },
+                    HoursWorked: {
+                        required: true,
+                        number: true,
+                        min: 1,
+                        max: 176
+                    },
+                    HourlyRate: {
+                        required: true,
+                        number: true,
+                        min: 50,
+                        max: 1000
+                    },
+                    SubmittedAt: {
+                        required: true,
+                        notFutureDate: true
+                    }
+                },
+                messages: {
+                    LecturerName: {
+                        required: "Please enter the lecturer's name"
+                    },
+                    HoursWorked: {
+                        required: "Enter hours worked"
+                    },
+                    HourlyRate: {
+                        required: "Enter hourly rate"
+                    },
+                    SubmittedAt: {
+                        required: "Select a submitted date",
+                        notFutureDate: "Date cannot be in the future"
+                    }
+                },
+                errorClass: "text-danger",
+
+                // NEW STYLING ADDED HERE ↓↓↓
+                highlight: function (element) {
+                    $(element).addClass("is-invalid");
+                },
+                unhighlight: function (element) {
+                    $(element).removeClass("is-invalid");
+                }
+            });
+
+        });
+    </script>
 }

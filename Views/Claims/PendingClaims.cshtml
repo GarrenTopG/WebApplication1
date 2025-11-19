@@ -37,9 +37,9 @@
                     <span class="badge bg-warning text-dark">@claim.Status</span>
                 </td>
                 <td>
-                    <a asp-action="Approve" asp-route-id="@claim.ClaimId" class="btn btn-success btn-sm">Approve</a>
-                    <a asp-action="Reject" asp-route-id="@claim.ClaimId" class="btn btn-danger btn-sm">Reject</a>
-                    <a asp-action="Details" asp-route-id="@claim.ClaimId" class="btn btn-info btn-sm">View</a>
+                    <a asp-action="Approve" asp-route-id="@claim.Id" class="btn btn-success btn-sm">Approve</a>
+                    <a asp-action="Reject" asp-route-id="@claim.Id" class="btn btn-danger btn-sm">Reject</a>
+                    <a asp-action="Details" asp-route-id="@claim.Id" class="btn btn-info btn-sm">View</a>
                 </td>
             </tr>
         }

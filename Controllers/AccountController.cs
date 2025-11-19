@@ -53,11 +53,11 @@ namespace WebApplication1.Controllers
                     switch (user.Role)
                     {
                         case "Lecturer":
-                            return RedirectToAction("Index", "Claims"); // ✅ reuse ClaimsController Index view
+                            return RedirectToAction("Index", "Claims"); 
                         case "Coordinator":
-                            return RedirectToAction("PendingClaims", "Claims"); // example: pending claims for coordinator
+                            return RedirectToAction("PendingClaims", "Claims"); 
                         case "Manager":
-                            return RedirectToAction("PendingClaims", "Claims"); // or a manager-specific page if you have
+                            return RedirectToAction("PendingClaims", "Claims"); 
                         default:
                             return RedirectToAction("Index", "Home");
                     }
