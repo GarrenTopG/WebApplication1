@@ -69,8 +69,30 @@
                 <td>@item.claim.Status</td>
                 <td>@string.Join(", ", flags)</td>
                 <td>
-                    <a asp-action="Approve" asp-route-id="@item.claim.Id" class="btn btn-success btn-sm me-1">Approve</a>
-                    <a asp-action="Reject" asp-route-id="@item.claim.Id" class="btn btn-danger btn-sm me-1">Reject</a>
+                    @* Role-based action buttons *@
+                    @if (User.IsInRole("Coordinator"))
+                    {
+                        if (item.claim.Status == WebApplication1.Models.ClaimStatus.Submitted)
+                        {
+                            <a asp-action="SetUnderReview" asp-route-id="@item.claim.Id" class="btn btn-warning btn-sm me-1">Under Review</a>
+                            <a asp-action="SendBack" asp-route-id="@item.claim.Id" class="btn btn-danger btn-sm me-1">Send Back</a>
+                        }
+                    }
+                    else if (User.IsInRole("Manager"))
+                    {
+                        if (item.claim.Status == WebApplication1.Models.ClaimStatus.UnderReview)
+                        {
+                            <a asp-action="Approve" asp-route-id="@item.claim.Id" class="btn btn-success btn-sm me-1">Approve</a>
+                            <a asp-action="Reject" asp-route-id="@item.claim.Id" class="btn btn-danger btn-sm me-1">Reject</a>
+                        }
+                    }
+                    else if (User.IsInRole("HR"))
+                    {
+                        if (item.claim.Status == WebApplication1.Models.ClaimStatus.Approved)
+                        {
+                            <a asp-action="MarkProcessed" asp-route-id="@item.claim.Id" class="btn btn-primary btn-sm">Process</a>
+                        }
+                    }
                     <a asp-action="Details" asp-route-id="@item.claim.Id" class="btn btn-info btn-sm">View</a>
                 </td>
             </tr>
