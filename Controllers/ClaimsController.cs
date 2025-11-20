@@ -7,6 +7,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApplication1.Data;
 using WebApplication1.Models;
+using WebApplication1.Services;
 using AppClaim = WebApplication1.Models.Claim;
 
 namespace WebApplication1.Controllers
@@ -15,10 +16,14 @@ namespace WebApplication1.Controllers
     {
         private readonly ApplicationDbContext _context;
 
-        public ClaimsController(ApplicationDbContext context)
+        private readonly ClaimVerificationService _claimVerificationService;
+
+        public ClaimsController(ApplicationDbContext context, ClaimVerificationService claimVerificationService)
         {
             _context = context;
+            _claimVerificationService = claimVerificationService;
         }
+
 
         // GET: Claims
         public async Task<IActionResult> Index(string searchString)
@@ -52,19 +57,34 @@ namespace WebApplication1.Controllers
         }
 
         // GET: Claims/PendingClaims
+        // Controller snippet
         public async Task<IActionResult> PendingClaims(string searchString)
         {
-            var pendingClaims = _context.Claims.Where(c => c.Status == ClaimStatus.Pending);
+            var pendingClaims = await _context.Claims
+                .Where(c => c.Status == ClaimStatus.Pending)
+                .ToListAsync();
+
+            var verifiedClaims = new List<(AppClaim claim, VerificationResult result)>();
+            foreach (var claim in pendingClaims)
+            {
+                var result = _claimVerificationService.VerifyClaim(claim);
+                verifiedClaims.Add((claim, result));
+            }
 
             if (!string.IsNullOrEmpty(searchString))
             {
-                pendingClaims = pendingClaims.Where(c => c.LecturerName.Contains(searchString)
-                                                      || c.Notes.Contains(searchString));
+                verifiedClaims = verifiedClaims
+                    .Where(x => x.claim.LecturerName.Contains(searchString)
+                             || x.claim.Notes.Contains(searchString))
+                    .ToList();
             }
 
             ViewData["CurrentFilter"] = searchString;
-            return View(await pendingClaims.ToListAsync());
+            return View(verifiedClaims); // Pass tuples to the view
         }
+
+
+
 
         // GET: Claims/Details/5
         public async Task<IActionResult> Details(int? id)

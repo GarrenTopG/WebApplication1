@@ -1,10 +1,21 @@
-﻿@model IEnumerable<WebApplication1.Models.Claim>
+﻿@model IEnumerable<(WebApplication1.Models.Claim claim, WebApplication1.Services.VerificationResult result)>
+
+@{
+    ViewData["Title"] = "Pending Claims";
+}
 
 <h1>Pending Claims</h1>
+
+<!-- Legend for flags -->
+<div class="mb-3">
+    <span class="badge bg-warning text-dark me-2">⚠️ Hourly rate or total hours issue</span>
+    <span class="badge bg-danger me-2">❌ Duplicate claim</span>
+</div>
 
 <!-- Link to All Claims (ReadOnly Index) -->
 <a asp-action="ReadOnlyIndex" class="btn btn-secondary mb-3">View All Claims</a>
 
+<!-- Search -->
 <form method="get" class="mb-3">
     <div class="input-group">
         <input type="text" name="searchString" value="@ViewData["CurrentFilter"]" class="form-control" placeholder="Search by lecturer or notes..." />
@@ -12,7 +23,8 @@
     </div>
 </form>
 
-<table class="table table-bordered">
+<!-- Claims Table -->
+<table class="table table-bordered table-hover">
     <thead>
         <tr>
             <th>Lecturer</th>
@@ -21,28 +33,52 @@
             <th>Total Amount</th>
             <th>Submitted At</th>
             <th>Status</th>
+            <th>Flags</th>
             <th>Actions</th>
         </tr>
     </thead>
     <tbody>
-        @foreach (var claim in Model)
+        @foreach (var item in Model)
         {
-            <tr>
-                <td>@claim.LecturerName</td>
-                <td>@claim.HoursWorked</td>
-                <td>@claim.HourlyRate</td>
-                <td>@claim.TotalAmount</td>
-                <td>@claim.SubmittedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+            // Determine row class and icons based on verification result
+            var rowClass = "";
+            var flags = new List<string>();
+
+            if (item.result.DuplicateClaim)
+            {
+                rowClass = "table-danger"; // red for duplicates
+                flags.Add("❌ Duplicate");
+            }
+            if (!item.result.HourlyRateValid)
+            {
+                rowClass = rowClass == "" ? "table-warning" : rowClass;
+                flags.Add("⚠️ Hourly rate");
+            }
+            if (!item.result.TotalHoursValid)
+            {
+                rowClass = rowClass == "" ? "table-warning" : rowClass;
+                flags.Add("⚠️ Total hours");
+            }
+
+            <tr class="@rowClass">
+                <td>@item.claim.LecturerName</td>
+                <td>@item.claim.HoursWorked</td>
+                <td>@item.claim.HourlyRate</td>
+                <td>@item.claim.TotalAmount</td>
+                <td>@item.claim.SubmittedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                <td>@item.claim.Status</td>
+                <td>@string.Join(", ", flags)</td>
                 <td>
-                    <span class="badge bg-warning text-dark">@claim.Status</span>
-                </td>
-                <td>
-                    <a asp-action="Approve" asp-route-id="@claim.Id" class="btn btn-success btn-sm">Approve</a>
-                    <a asp-action="Reject" asp-route-id="@claim.Id" class="btn btn-danger btn-sm">Reject</a>
-                    <a asp-action="Details" asp-route-id="@claim.Id" class="btn btn-info btn-sm">View</a>
+                    <a asp-action="Approve" asp-route-id="@item.claim.Id" class="btn btn-success btn-sm me-1">Approve</a>
+                    <a asp-action="Reject" asp-route-id="@item.claim.Id" class="btn btn-danger btn-sm me-1">Reject</a>
+                    <a asp-action="Details" asp-route-id="@item.claim.Id" class="btn btn-info btn-sm">View</a>
                 </td>
             </tr>
         }
     </tbody>
 </table>
 
+@if (!Model.Any())
+{
+    <p class="text-muted">No pending claims found.</p>
+}
