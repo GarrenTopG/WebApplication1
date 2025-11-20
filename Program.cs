@@ -27,6 +27,7 @@ builder.Services.AddSession();
 
 // Register services
 builder.Services.AddScoped<ClaimVerificationService>();
+builder.Services.AddScoped<NotificationService>();
 
 var app = builder.Build();
 
@@ -39,16 +40,18 @@ if (!app.Environment.IsDevelopment())
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
+
 app.UseRouting();
 
-app.UseAuthentication(); // Required for login
+app.UseAuthentication();
 app.UseAuthorization();
 app.UseSession();
 
+// Seed roles
 using (var scope = app.Services.CreateScope())
 {
     var roleManager = scope.ServiceProvider.GetRequiredService<RoleManager<IdentityRole>>();
-    string[] roles = { "Lecturer", "Coordinator", "Manager" };
+    string[] roles = { "Lecturer", "Coordinator", "Manager", "HR" };
 
     foreach (var role in roles)
     {
@@ -65,4 +68,5 @@ app.MapControllerRoute(
     pattern: "{controller=Account}/{action=Login}/{id?}");
 
 app.MapRazorPages();
+
 app.Run();

@@ -13,6 +13,8 @@ namespace WebApplication1.Data
 
         public DbSet<Claim> Claims { get; set; }
         public DbSet<SupportingDocument> SupportingDocuments { get; set; }
+        public DbSet<Notification> Notifications { get; set; }
+
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {

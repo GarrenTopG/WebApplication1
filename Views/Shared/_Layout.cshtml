@@ -4,42 +4,107 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>@ViewData["Title"] - WebApplication1</title>
+
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
     <link rel="stylesheet" href="~/WebApplication1.styles.css" asp-append-version="true" />
+
+    <!-- Bootstrap Icons for Bell -->
+    <link rel="stylesheet"
+          href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css">
 </head>
 <body>
 
-    <!-- Global Notifications -->
+    <!-- GLOBAL SUCCESS / ERROR ALERTS -->
     @if (TempData["Message"] != null)
     {
         <div class="alert alert-success alert-dismissible fade show m-3" role="alert">
             @TempData["Message"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
     @if (TempData["Error"] != null)
     {
         <div class="alert alert-danger alert-dismissible fade show m-3" role="alert">
             @TempData["Error"]
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
         </div>
     }
 
+    <!-- NAVBAR (With Notification Bell) -->
+    <nav class="navbar navbar-expand-lg navbar-light bg-light border-bottom mb-3">
+        <div class="container-fluid">
+            <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">WebApplication1</a>
+
+            <ul class="navbar-nav ms-auto">
+
+                <!-- Notification Bell -->
+                <li class="nav-item dropdown">
+                    <a class="nav-link position-relative" href="#" id="notifDropdown" data-bs-toggle="dropdown">
+                        <i class="bi bi-bell" style="font-size: 1.4rem;"></i>
+
+                        <span id="notifCount"
+                              class="badge bg-danger position-absolute top-0 start-100 translate-middle rounded-pill"
+                              style="font-size: 0.7rem;">
+                        </span>
+                    </a>
+
+                    <div class="dropdown-menu dropdown-menu-end p-2" style="width: 300px;">
+                        <div id="notifContainer">Loading...</div>
+                    </div>
+                </li>
+
+                <!-- Logout -->
+                <li class="nav-item">
+                    <a class="nav-link" asp-controller="Account" asp-action="Logout">Logout</a>
+                </li>
+
+            </ul>
+        </div>
+    </nav>
+
     <div class="container">
-        <main role="main" class="pb-3">
+        <main role="main">
             @RenderBody()
         </main>
     </div>
 
-    <footer class="border-top footer text-muted">
+    <footer class="border-top footer text-muted mt-4">
         <div class="container">
-            &copy; 2025 - WebApplication1 - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+            &copy; 2025 - WebApplication1 -
+            <a asp-controller="Home" asp-action="Privacy">Privacy</a>
         </div>
     </footer>
+
+    <!-- Scripts -->
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
     <script src="~/js/site.js" asp-append-version="true"></script>
+
+    <!-- Load Notifications -->
+    <script>
+        document.addEventListener("DOMContentLoaded", function () {
+
+            function loadNotifications() {
+                fetch("/Notification/List")
+                    .then(response => response.text())
+                    .then(html => {
+                        document.getElementById("notifContainer").innerHTML = html;
+
+                        let count = document.querySelectorAll(
+                            "#notifContainer .list-group-item"
+                        ).length;
+
+                        document.getElementById("notifCount").innerText =
+                            count > 0 ? count : "";
+                    });
+            }
+
+            loadNotifications();
+        });
+    </script>
+
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
+

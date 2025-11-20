@@ -1,0 +1,21 @@
+﻿@model List<WebApplication1.Models.Notification>
+
+<ul class="list-group">
+    @if (!Model.Any())
+    {
+        <li class="list-group-item text-center text-muted">No new notifications</li>
+    }
+    else
+    {
+        foreach (var n in Model)
+        {
+            <li class="list-group-item d-flex justify-content-between align-items-center">
+                <span>@n.Message</span>
+                <a href="/Notification/MarkAsRead/@n.Id" class="btn btn-sm btn-outline-primary">
+                    Mark as read
+                </a>
+            </li>
+        }
+    }
+</ul>
+

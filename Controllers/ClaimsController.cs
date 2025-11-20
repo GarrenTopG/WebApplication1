@@ -6,6 +6,7 @@ using System.Security.Claims;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using WebApplication1.Data;
@@ -19,11 +20,19 @@ namespace WebApplication1.Controllers
     {
         private readonly ApplicationDbContext _context;
         private readonly ClaimVerificationService _claimVerificationService;
+        private readonly NotificationService _notificationService;
+        private readonly UserManager<User> _userManager;
 
-        public ClaimsController(ApplicationDbContext context, ClaimVerificationService claimVerificationService)
+        public ClaimsController(
+            ApplicationDbContext context,
+            UserManager<User> userManager,
+            ClaimVerificationService claimVerificationService,
+            NotificationService notificationService)
         {
             _context = context;
+            _userManager = userManager;
             _claimVerificationService = claimVerificationService;
+            _notificationService = notificationService;
         }
 
         // GET: Claims for logged-in user
@@ -98,12 +107,9 @@ namespace WebApplication1.Controllers
         }
 
         // GET: Create claim
-        public IActionResult Create()
-        {
-            return View();
-        }
+        public IActionResult Create() => View();
 
-        // POST: Create claim
+        // POST: Claims/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(AppClaim claim, List<IFormFile>? files)
@@ -125,6 +131,16 @@ namespace WebApplication1.Controllers
                 await _context.SaveChangesAsync();
 
                 await HandleFileUploads(claim, files);
+
+                // 🔔 Notify Coordinator
+                var coordinatorId = await _notificationService.GetCoordinatorUserIdAsync();
+                if (!string.IsNullOrEmpty(coordinatorId))
+                {
+                    await _notificationService.AddNotificationAsync(
+                        coordinatorId,
+                        $"New claim submitted by {claim.LecturerName}."
+                    );
+                }
 
                 TempData["Message"] = "Claim created successfully.";
                 return RedirectToAction(nameof(Index));
@@ -255,6 +271,12 @@ namespace WebApplication1.Controllers
             claim.Status = ClaimStatus.SentBack;
             await _context.SaveChangesAsync();
 
+            // 🔔 Notify Lecturer
+            await _notificationService.AddNotificationAsync(
+                claim.UserId,
+                $"Your claim '{claim.Id}' has been sent back for corrections."
+            );
+
             TempData["Message"] = "Claim sent back to lecturer.";
             return RedirectToAction("PendingClaims");
         }
@@ -274,6 +296,16 @@ namespace WebApplication1.Controllers
 
             claim.Status = ClaimStatus.Approved;
             await _context.SaveChangesAsync();
+
+            // 🔔 Notify HR
+            var hrId = await _notificationService.GetHRUserIdAsync();
+            if (!string.IsNullOrEmpty(hrId))
+            {
+                await _notificationService.AddNotificationAsync(
+                    hrId,
+                    $"Claim '{claim.Id}' has been approved and is ready for processing."
+                );
+            }
 
             TempData["Message"] = "Claim approved.";
             return RedirectToAction("PendingClaims");
@@ -295,6 +327,12 @@ namespace WebApplication1.Controllers
             claim.Status = ClaimStatus.Rejected;
             await _context.SaveChangesAsync();
 
+            // 🔔 Notify Lecturer
+            await _notificationService.AddNotificationAsync(
+                claim.UserId,
+                $"Your claim '{claim.Id}' has been rejected by the Manager."
+            );
+
             TempData["Message"] = "Claim rejected.";
             return RedirectToAction("PendingClaims");
         }
@@ -315,15 +353,18 @@ namespace WebApplication1.Controllers
             claim.Status = ClaimStatus.Processed;
             await _context.SaveChangesAsync();
 
+            // 🔔 Notify Lecturer
+            await _notificationService.AddNotificationAsync(
+                claim.UserId,
+                $"Your claim '{claim.Id}' has been processed by HR."
+            );
+
             TempData["Message"] = "Claim marked as processed.";
             return RedirectToAction("PendingClaims");
         }
 
         // Helper: Check if claim exists
-        private bool ClaimExists(int id)
-        {
-            return _context.Claims.Any(e => e.Id == id);
-        }
+        private bool ClaimExists(int id) => _context.Claims.Any(e => e.Id == id);
 
         // Helper: Handle file uploads
         private async Task HandleFileUploads(AppClaim claim, List<IFormFile>? files)
