@@ -1,4 +1,6 @@
-﻿<!DOCTYPE html>
+﻿@using System.Security.Claims
+@inject WebApplication1.Services.NotificationService NotificationService
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="utf-8" />
@@ -86,13 +88,13 @@
         document.addEventListener("DOMContentLoaded", function () {
 
             function loadNotifications() {
-                fetch("/Notification/List")
+                fetch("/Notification/Unread")
                     .then(response => response.text())
                     .then(html => {
                         document.getElementById("notifContainer").innerHTML = html;
 
                         let count = document.querySelectorAll(
-                            "#notifContainer .list-group-item"
+                            "#notifContainer .list-group-item.unread"
                         ).length;
 
                         document.getElementById("notifCount").innerText =
@@ -101,10 +103,21 @@
             }
 
             loadNotifications();
+
+            // Mark notification as read
+            $(document).on("click", ".mark-read", function (e) {
+                e.preventDefault();
+                var id = $(this).data("id");
+                $.post("/Notification/MarkRead", { id: id })
+                    .done(function () {
+                        loadNotifications(); // Refresh notifications after marking read
+                    });
+            });
         });
     </script>
 
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>
+
 

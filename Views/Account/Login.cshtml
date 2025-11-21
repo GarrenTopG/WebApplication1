@@ -12,14 +12,18 @@
                 </div>
                 <div class="card-body">
                     <form asp-action="Login" method="post">
+                        @Html.AntiForgeryToken()
+
+                        <div asp-validation-summary="All" class="text-danger"></div>
+
                         <div class="mb-3">
-                            <label asp-for="UsernameOrEmail"></label>
+                            <label asp-for="UsernameOrEmail" class="form-label"></label>
                             <input asp-for="UsernameOrEmail" class="form-control" />
                             <span asp-validation-for="UsernameOrEmail" class="text-danger"></span>
                         </div>
 
                         <div class="mb-3">
-                            <label asp-for="Password"></label>
+                            <label asp-for="Password" class="form-label"></label>
                             <input asp-for="Password" type="password" class="form-control" />
                             <span asp-validation-for="Password" class="text-danger"></span>
                         </div>
@@ -33,12 +37,16 @@
                     </form>
 
                     <div class="text-center mt-3">
-                        <a asp-action="Register" class="text-decoration-none">Don’t have an account? Register</a>
+                        <p>Don’t have an account? <a asp-action="Register" class="text-decoration-none">Register here</a></p>
                     </div>
                 </div>
             </div>
         </div>
     </div>
 </div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+}
 
 

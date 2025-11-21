@@ -1,11 +1,11 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Threading.Tasks;
-using Microsoft.AspNetCore.Identity;
+﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using WebApplication1.Data;
 using WebApplication1.Models;
+using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Threading.Tasks;
 
 namespace WebApplication1.Services
 {
@@ -14,16 +14,13 @@ namespace WebApplication1.Services
         private readonly ApplicationDbContext _context;
         private readonly UserManager<User> _userManager;
 
-
-
-        public NotificationService(
-    ApplicationDbContext context,
-    UserManager<User> userManager)
+        public NotificationService(ApplicationDbContext context, UserManager<User> userManager)
         {
             _context = context;
             _userManager = userManager;
         }
 
+        // Add a new notification
         public async Task AddNotificationAsync(string userId, string message)
         {
             if (string.IsNullOrWhiteSpace(userId) || string.IsNullOrWhiteSpace(message))
@@ -41,6 +38,7 @@ namespace WebApplication1.Services
             await _context.SaveChangesAsync();
         }
 
+        // Get unread notifications for a user
         public async Task<List<Notification>> GetUnreadNotificationsAsync(string userId)
         {
             return await _context.Notifications
@@ -49,6 +47,7 @@ namespace WebApplication1.Services
                 .ToListAsync();
         }
 
+        // Mark a notification as read
         public async Task MarkAsReadAsync(int notificationId)
         {
             var notification = await _context.Notifications.FindAsync(notificationId);
@@ -59,18 +58,37 @@ namespace WebApplication1.Services
             }
         }
 
-        // Get first Coordinator user ID (or list if needed)
+        // Get first Coordinator user ID
         public async Task<string?> GetCoordinatorUserIdAsync()
         {
             var coordinators = await _userManager.GetUsersInRoleAsync("Coordinator");
             return coordinators.FirstOrDefault()?.Id;
         }
 
-        // Get first HR user ID (or list if needed)
+        // Get first HR user ID
         public async Task<string?> GetHRUserIdAsync()
         {
             var hrUsers = await _userManager.GetUsersInRoleAsync("HR");
             return hrUsers.FirstOrDefault()?.Id;
         }
+
+        public async Task<string?> GetManagerUserIdAsync()
+        {
+            // Load all users into memory first
+            var users = await _context.Users.ToListAsync();
+
+            foreach (var user in users)
+            {
+                var roles = await _userManager.GetRolesAsync(user);
+                if (roles.Contains("Manager"))
+                {
+                    return user.Id;
+                }
+            }
+
+            return null; // no manager found
+        }
+
     }
 }
+

@@ -1,0 +1,102 @@
+﻿@model IEnumerable<WebApplication1.Models.PendingClaimViewModel>
+
+@{
+    ViewData["Title"] = "Pending Claims";
+}
+
+<h2>Pending Claims</h2>
+
+<!-- Success/Error messages -->
+@if (TempData["Message"] != null)
+{
+    <div class="alert alert-success">@TempData["Message"]</div>
+}
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}
+
+<table class="table table-bordered table-striped">
+    <thead class="table-dark">
+        <tr>
+            <th>Claim ID</th>
+            <th>Lecturer</th>
+            <th>Date Submitted</th>
+            <th>Hours</th>
+            <th>Rate</th>
+            <th>Total</th>
+            <th>Notes</th>
+            <th>Status</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var vm in Model)
+        {
+            var claim = vm.Claim;
+            <tr class="@GetStatusClass(claim.Status)">
+                <td>@claim.Id</td>
+                <td>@claim.LecturerName</td>
+                <td>@claim.SubmittedAt.ToString("yyyy-MM-dd")</td>
+                <td>@claim.HoursWorked</td>
+                <td>@claim.HourlyRate</td>
+                <td>@claim.TotalAmount</td>
+                <td>@claim.Notes</td>
+                <td>@claim.Status</td>
+                <td>
+                    @* Coordinator actions *@
+                    @if (User.IsInRole("Coordinator") && claim.Status == WebApplication1.Models.ClaimStatus.Submitted)
+                    {
+                        <form asp-action="SetUnderReview" asp-route-id="@claim.Id" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-warning btn-sm">Under Review</button>
+                        </form>
+
+                        <form asp-action="SendBack" asp-route-id="@claim.Id" method="post" class="d-inline">
+                            @Html.AntiForgeryToken()
+                            <button type="submit" class="btn btn-danger btn-sm">Send Back</button>
+                        </form>
+                    }
+
+                    @* Manager actions *@
+                    @if (User.IsInRole("Manager") && claim.Status == WebApplication1.Models.ClaimStatus.UnderReview)
+                    {
+                        <a asp-action="Approve" asp-route-id="@claim.Id" class="btn btn-success btn-sm">Approve</a>
+                        <a asp-action="Reject" asp-route-id="@claim.Id" class="btn btn-danger btn-sm">Reject</a>
+                    }
+
+                    <a asp-action="Details" asp-route-id="@claim.Id" class="btn btn-info btn-sm">View</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>
+
+@if (!Model.Any())
+{
+    <p>No pending claims.</p>
+}
+
+@* -----------------------------
+   Helper method for row color
+   ----------------------------- *@
+@functions {
+    private string GetStatusClass(WebApplication1.Models.ClaimStatus status)
+    {
+        switch (status)
+        {
+            case WebApplication1.Models.ClaimStatus.Submitted:
+                return "status-pending"; // yellow
+            case WebApplication1.Models.ClaimStatus.UnderReview:
+                return "status-under-review"; // light yellow
+            case WebApplication1.Models.ClaimStatus.Approved:
+                return "status-approved"; // green
+            case WebApplication1.Models.ClaimStatus.SentBack:
+                return "status-sentback"; // red
+            default:
+                return "";
+        }
+    }
+}
+
+

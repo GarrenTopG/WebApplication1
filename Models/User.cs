@@ -4,10 +4,11 @@ namespace WebApplication1.Models
 {
     public class User : IdentityUser
     {
-        // Extra property for role reference
-        public string Role { get; set; }
+        // Stores role as a simple string, also managed by IdentityRole
+        public string Role { get; set; } = string.Empty;
     }
 }
+
 
 
 

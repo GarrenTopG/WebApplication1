@@ -41,6 +41,7 @@
                                 <option value="Lecturer">Lecturer</option>
                                 <option value="Coordinator">Coordinator</option>
                                 <option value="Manager">Manager</option>
+                                <!-- HR cannot self-register; only seeded in Program.cs -->
                             </select>
                             <span asp-validation-for="Role" class="text-danger"></span>
                         </div>
@@ -60,6 +61,7 @@
 @section Scripts {
     <partial name="_ValidationScriptsPartial" />
 }
+
 
 
 

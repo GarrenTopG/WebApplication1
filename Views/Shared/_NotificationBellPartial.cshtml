@@ -1,0 +1,23 @@
+﻿@model List<WebApplication1.Models.Notification>
+
+@if (!Model.Any())
+{
+    <div class="px-3 text-muted">No unread notifications</div>
+}
+else
+{
+    <ul class="list-group list-group-flush">
+        @foreach (var n in Model.Take(7))
+        {
+            <li class="list-group-item unread px-2 py-1 border-bottom">
+                <div>
+                    <small class="text-muted">@n.CreatedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</small>
+                </div>
+                <div>@n.Message</div>
+                <div class="mt-1">
+                    <button class="btn btn-sm btn-link mark-read" data-id="@n.Id">Mark read</button>
+                </div>
+            </li>
+        }
+    </ul>
+}

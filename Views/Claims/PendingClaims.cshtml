@@ -1,7 +1,11 @@
-﻿@model IEnumerable<(WebApplication1.Models.Claim claim, WebApplication1.Services.VerificationResult result)>
+﻿@model IEnumerable<WebApplication1.Models.PendingClaimViewModel>
 
 @{
     ViewData["Title"] = "Pending Claims";
+    var role = "";
+    if (User.IsInRole("Coordinator")) role = "Coordinator";
+    else if (User.IsInRole("Manager")) role = "Manager";
+    else if (User.IsInRole("HR")) role = "HR";
 }
 
 <h1>Pending Claims</h1>
@@ -38,62 +42,72 @@
         </tr>
     </thead>
     <tbody>
-        @foreach (var item in Model)
+        @foreach (var vm in Model)
         {
-            // Determine row class and icons based on verification result
             var rowClass = "";
             var flags = new List<string>();
 
-            if (item.result.DuplicateClaim)
+            // Only Coordinator has Verification results
+            if (vm.Verification != null)
             {
-                rowClass = "table-danger"; // red for duplicates
-                flags.Add("❌ Duplicate");
-            }
-            if (!item.result.HourlyRateValid)
-            {
-                rowClass = rowClass == "" ? "table-warning" : rowClass;
-                flags.Add("⚠️ Hourly rate");
-            }
-            if (!item.result.TotalHoursValid)
-            {
-                rowClass = rowClass == "" ? "table-warning" : rowClass;
-                flags.Add("⚠️ Total hours");
+                if (vm.Verification.DuplicateClaim)
+                {
+                    rowClass = "table-danger";
+                    flags.Add("❌ Duplicate");
+                }
+                if (!vm.Verification.HourlyRateValid)
+                {
+                    rowClass = rowClass == "" ? "table-warning" : rowClass;
+                    flags.Add("⚠️ Hourly rate");
+                }
+                if (!vm.Verification.TotalHoursValid)
+                {
+                    rowClass = rowClass == "" ? "table-warning" : rowClass;
+                    flags.Add("⚠️ Total hours");
+                }
             }
 
             <tr class="@rowClass">
-                <td>@item.claim.LecturerName</td>
-                <td>@item.claim.HoursWorked</td>
-                <td>@item.claim.HourlyRate</td>
-                <td>@item.claim.TotalAmount</td>
-                <td>@item.claim.SubmittedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
-                <td>@item.claim.Status</td>
+                <td>@vm.Claim.LecturerName</td>
+                <td>@vm.Claim.HoursWorked</td>
+                <td>@vm.Claim.HourlyRate</td>
+                <td>@vm.Claim.TotalAmount</td>
+                <td>@vm.Claim.SubmittedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+                <td>@vm.Claim.Status</td>
                 <td>@string.Join(", ", flags)</td>
                 <td>
                     @* Role-based action buttons *@
-                    @if (User.IsInRole("Coordinator"))
+                    @if (role == "Coordinator")
                     {
-                        if (item.claim.Status == WebApplication1.Models.ClaimStatus.Submitted)
+                        if (vm.Claim.Status == WebApplication1.Models.ClaimStatus.Submitted)
                         {
-                            <a asp-action="SetUnderReview" asp-route-id="@item.claim.Id" class="btn btn-warning btn-sm me-1">Under Review</a>
-                            <a asp-action="SendBack" asp-route-id="@item.claim.Id" class="btn btn-danger btn-sm me-1">Send Back</a>
+                            <form asp-action="SetUnderReview" method="post" style="display:inline;">
+                                <input type="hidden" name="id" value="@vm.Claim.Id" />
+                                <button type="submit" class="btn btn-warning btn-sm me-1">Under Review</button>
+                            </form>
+                            <form asp-action="SendBack" method="post" style="display:inline;">
+                                <input type="hidden" name="id" value="@vm.Claim.Id" />
+                                <button type="submit" class="btn btn-danger btn-sm me-1">Send Back</button>
+                            </form>
                         }
                     }
-                    else if (User.IsInRole("Manager"))
+                    else if (role == "Manager")
                     {
-                        if (item.claim.Status == WebApplication1.Models.ClaimStatus.UnderReview)
+                        if (vm.Claim.Status == WebApplication1.Models.ClaimStatus.UnderReview)
                         {
-                            <a asp-action="Approve" asp-route-id="@item.claim.Id" class="btn btn-success btn-sm me-1">Approve</a>
-                            <a asp-action="Reject" asp-route-id="@item.claim.Id" class="btn btn-danger btn-sm me-1">Reject</a>
+                            <a asp-action="Approve" asp-route-id="@vm.Claim.Id" class="btn btn-success btn-sm me-1">Approve</a>
+                            <a asp-action="Reject" asp-route-id="@vm.Claim.Id" class="btn btn-danger btn-sm me-1">Reject</a>
                         }
                     }
-                    else if (User.IsInRole("HR"))
+                    else if (role == "HR")
                     {
-                        if (item.claim.Status == WebApplication1.Models.ClaimStatus.Approved)
+                        if (vm.Claim.Status == WebApplication1.Models.ClaimStatus.Approved)
                         {
-                            <a asp-action="MarkProcessed" asp-route-id="@item.claim.Id" class="btn btn-primary btn-sm">Process</a>
+                            <a asp-action="MarkProcessed" asp-route-id="@vm.Claim.Id" class="btn btn-primary btn-sm">Process</a>
                         }
                     }
-                    <a asp-action="Details" asp-route-id="@item.claim.Id" class="btn btn-info btn-sm">View</a>
+
+                    <a asp-action="Details" asp-route-id="@vm.Claim.Id" class="btn btn-info btn-sm">View</a>
                 </td>
             </tr>
         }

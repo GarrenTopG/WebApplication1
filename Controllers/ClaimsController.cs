@@ -35,7 +35,9 @@ namespace WebApplication1.Controllers
             _notificationService = notificationService;
         }
 
-        // GET: Claims for logged-in user
+        // -------------------------
+        // User-specific claims
+        // -------------------------
         public async Task<IActionResult> Index(string searchString)
         {
             var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
@@ -51,7 +53,6 @@ namespace WebApplication1.Controllers
             return View(await claims.ToListAsync());
         }
 
-        // GET: All claims read-only
         public async Task<IActionResult> ReadOnlyIndex(string searchString)
         {
             var claims = _context.Claims.AsQueryable();
@@ -66,33 +67,6 @@ namespace WebApplication1.Controllers
             return View(await claims.ToListAsync());
         }
 
-        // GET: Pending claims (Submitted status)
-        public async Task<IActionResult> PendingClaims(string searchString)
-        {
-            var pendingClaims = await _context.Claims
-                .Where(c => c.Status == ClaimStatus.Submitted)
-                .ToListAsync();
-
-            var verifiedClaims = new List<(AppClaim claim, VerificationResult result)>();
-            foreach (var claim in pendingClaims)
-            {
-                var result = _claimVerificationService.VerifyClaim(claim);
-                verifiedClaims.Add((claim, result));
-            }
-
-            if (!string.IsNullOrEmpty(searchString))
-            {
-                verifiedClaims = verifiedClaims
-                    .Where(x => x.claim.LecturerName.Contains(searchString)
-                             || x.claim.Notes.Contains(searchString))
-                    .ToList();
-            }
-
-            ViewData["CurrentFilter"] = searchString;
-            return View(verifiedClaims);
-        }
-
-        // GET: Details
         public async Task<IActionResult> Details(int? id)
         {
             if (id == null) return NotFound();
@@ -106,10 +80,11 @@ namespace WebApplication1.Controllers
             return View(claim);
         }
 
-        // GET: Create claim
+        // -------------------------
+        // Create/Edit/Delete
+        // -------------------------
         public IActionResult Create() => View();
 
-        // POST: Claims/Create
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Create(AppClaim claim, List<IFormFile>? files)
@@ -132,7 +107,7 @@ namespace WebApplication1.Controllers
 
                 await HandleFileUploads(claim, files);
 
-                // 🔔 Notify Coordinator
+                // Notify Coordinator
                 var coordinatorId = await _notificationService.GetCoordinatorUserIdAsync();
                 if (!string.IsNullOrEmpty(coordinatorId))
                 {
@@ -151,7 +126,6 @@ namespace WebApplication1.Controllers
             return View(claim);
         }
 
-        // GET: Edit
         public async Task<IActionResult> Edit(int? id)
         {
             if (id == null) return NotFound();
@@ -162,7 +136,6 @@ namespace WebApplication1.Controllers
             return View(claim);
         }
 
-        // POST: Edit
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Edit(int id, AppClaim claim, List<IFormFile>? files)
@@ -201,7 +174,6 @@ namespace WebApplication1.Controllers
             return View(claim);
         }
 
-        // GET: Delete
         public async Task<IActionResult> Delete(int? id)
         {
             if (id == null) return NotFound();
@@ -213,7 +185,6 @@ namespace WebApplication1.Controllers
             return View(claim);
         }
 
-        // POST: Delete
         [HttpPost, ActionName("Delete")]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> DeleteConfirmed(int id)
@@ -233,140 +204,179 @@ namespace WebApplication1.Controllers
             return RedirectToAction(nameof(Index));
         }
 
-        // --- Workflow Actions ---
-
-        // Coordinator: Set Under Review
-        [Authorize(Roles = "Coordinator")]
-        public async Task<IActionResult> SetUnderReview(int id)
+        // -------------------------
+        // Pending Claims by Role
+        // -------------------------
+        // Redirector: sends user to their role-specific pending claims
+        [Authorize]
+        public IActionResult PendingClaims(string searchString)
         {
-            var claim = await _context.Claims.FindAsync(id);
-            if (claim == null) return NotFound();
+            if (User.IsInRole("Coordinator"))
+                return RedirectToAction(nameof(PendingClaimsForCoordinator), new { searchString });
 
-            if (claim.Status != ClaimStatus.Submitted)
-            {
-                TempData["Error"] = "Only submitted claims can be set to Under Review.";
-                return RedirectToAction("PendingClaims");
-            }
+            if (User.IsInRole("Manager"))
+                return RedirectToAction(nameof(PendingClaimsForManager), new { searchString });
 
-            claim.Status = ClaimStatus.UnderReview;
-            await _context.SaveChangesAsync();
+            if (User.IsInRole("HR"))
+                return RedirectToAction(nameof(PendingClaimsForHR), new { searchString });
 
-            TempData["Message"] = "Claim set to Under Review.";
-            return RedirectToAction("PendingClaims");
+            TempData["Error"] = "You do not have access to pending claims.";
+            return RedirectToAction(nameof(Index));
         }
 
-        // Coordinator: Send Back
+
+        // Coordinator: Pending Claims
         [Authorize(Roles = "Coordinator")]
-        public async Task<IActionResult> SendBack(int id)
+        public async Task<IActionResult> PendingClaimsForCoordinator(string searchString)
         {
-            var claim = await _context.Claims.FindAsync(id);
-            if (claim == null) return NotFound();
+            var pendingClaims = await _context.Claims
+                .Where(c => c.Status == ClaimStatus.Submitted || c.Status == ClaimStatus.UnderReview)
+                .ToListAsync();
 
-            if (claim.Status != ClaimStatus.Submitted && claim.Status != ClaimStatus.UnderReview)
-            {
-                TempData["Error"] = "Only submitted or under review claims can be sent back.";
-                return RedirectToAction("PendingClaims");
-            }
+            var viewModel = pendingClaims
+                .Select(c => new PendingClaimViewModel
+                {
+                    Claim = c,
+                    Verification = _claimVerificationService.VerifyClaim(c)
+                });
 
-            claim.Status = ClaimStatus.SentBack;
-            await _context.SaveChangesAsync();
+            if (!string.IsNullOrEmpty(searchString))
+                viewModel = viewModel
+                    .Where(vm => vm.Claim.LecturerName.Contains(searchString) || vm.Claim.Notes.Contains(searchString));
 
-            // 🔔 Notify Lecturer
-            await _notificationService.AddNotificationAsync(
-                claim.UserId,
-                $"Your claim '{claim.Id}' has been sent back for corrections."
-            );
-
-            TempData["Message"] = "Claim sent back to lecturer.";
-            return RedirectToAction("PendingClaims");
+            ViewData["CurrentFilter"] = searchString;
+            return View("PendingClaims", viewModel);
         }
 
-        // Manager: Approve
+
+        // Manager: Pending Claims
+        [Authorize(Roles = "Manager")]
+        public async Task<IActionResult> PendingClaimsForManager(string searchString)
+        {
+            var pendingClaims = await _context.Claims
+                .Where(c => c.Status == ClaimStatus.UnderReview)
+                .ToListAsync();
+
+            var viewModel = pendingClaims
+                .Select(c => new PendingClaimViewModel
+                {
+                    Claim = c,
+                    Verification = null  // Managers do not need verification
+                });
+
+            if (!string.IsNullOrEmpty(searchString))
+                viewModel = viewModel
+                    .Where(vm => vm.Claim.LecturerName.Contains(searchString) || vm.Claim.Notes.Contains(searchString));
+
+            ViewData["CurrentFilter"] = searchString;
+            return View("PendingClaims", viewModel);
+        }
+
+        // HR: Pending Claims
+        [Authorize(Roles = "HR")]
+        public async Task<IActionResult> PendingClaimsForHR(string searchString)
+        {
+            var pendingClaims = await _context.Claims
+                .Where(c => c.Status == ClaimStatus.Approved)
+                .ToListAsync();
+
+            var viewModel = pendingClaims
+                .Select(c => new PendingClaimViewModel
+                {
+                    Claim = c,
+                    Verification = null // HR does not need verification
+                });
+
+            if (!string.IsNullOrEmpty(searchString))
+                viewModel = viewModel
+                    .Where(vm => vm.Claim.LecturerName.Contains(searchString) || vm.Claim.Notes.Contains(searchString));
+
+            ViewData["CurrentFilter"] = searchString;
+            return View("PendingClaims", viewModel);
+        }
+
+        // Manager: Approve Claim
+        // -------------------------
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Approve(int id)
         {
             var claim = await _context.Claims.FindAsync(id);
             if (claim == null) return NotFound();
 
-            if (claim.Status != ClaimStatus.UnderReview)
-            {
-                TempData["Error"] = "Only claims under review can be approved.";
-                return RedirectToAction("PendingClaims");
-            }
-
             claim.Status = ClaimStatus.Approved;
             await _context.SaveChangesAsync();
 
-            // 🔔 Notify HR
-            var hrId = await _notificationService.GetHRUserIdAsync();
-            if (!string.IsNullOrEmpty(hrId))
-            {
-                await _notificationService.AddNotificationAsync(
-                    hrId,
-                    $"Claim '{claim.Id}' has been approved and is ready for processing."
-                );
-            }
-
-            TempData["Message"] = "Claim approved.";
-            return RedirectToAction("PendingClaims");
+            TempData["Message"] = $"Claim {claim.Id} approved.";
+            return RedirectToAction(nameof(PendingClaimsForManager));
         }
 
-        // Manager: Reject
         [Authorize(Roles = "Manager")]
         public async Task<IActionResult> Reject(int id)
         {
             var claim = await _context.Claims.FindAsync(id);
             if (claim == null) return NotFound();
 
-            if (claim.Status != ClaimStatus.UnderReview)
-            {
-                TempData["Error"] = "Only claims under review can be rejected.";
-                return RedirectToAction("PendingClaims");
-            }
-
-            claim.Status = ClaimStatus.Rejected;
+            claim.Status = ClaimStatus.Submitted; // Or whatever “rejected” workflow you want
             await _context.SaveChangesAsync();
 
-            // 🔔 Notify Lecturer
-            await _notificationService.AddNotificationAsync(
-                claim.UserId,
-                $"Your claim '{claim.Id}' has been rejected by the Manager."
-            );
-
-            TempData["Message"] = "Claim rejected.";
-            return RedirectToAction("PendingClaims");
+            TempData["Message"] = $"Claim {claim.Id} rejected.";
+            return RedirectToAction(nameof(PendingClaimsForManager));
         }
 
-        // HR: Mark Processed
-        [Authorize(Roles = "HR")]
-        public async Task<IActionResult> MarkProcessed(int id)
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Coordinator")]
+        public async Task<IActionResult> SetUnderReview(int id, string? searchString)
         {
             var claim = await _context.Claims.FindAsync(id);
-            if (claim == null) return NotFound();
-
-            if (claim.Status != ClaimStatus.Approved)
+            if (claim == null)
             {
-                TempData["Error"] = "Only approved claims can be processed.";
-                return RedirectToAction("PendingClaims");
+                TempData["Error"] = "Claim not found.";
+                return RedirectToAction(nameof(PendingClaimsForCoordinator), new { searchString });
             }
 
-            claim.Status = ClaimStatus.Processed;
+            claim.Status = ClaimStatus.UnderReview;
             await _context.SaveChangesAsync();
 
-            // 🔔 Notify Lecturer
-            await _notificationService.AddNotificationAsync(
-                claim.UserId,
-                $"Your claim '{claim.Id}' has been processed by HR."
-            );
+            var managerId = await _notificationService.GetManagerUserIdAsync();
+            if (!string.IsNullOrEmpty(managerId))
+                await _notificationService.AddNotificationAsync(managerId, $"Claim #{claim.Id} is now under review.");
 
-            TempData["Message"] = "Claim marked as processed.";
-            return RedirectToAction("PendingClaims");
+            TempData["Message"] = "Claim moved to Under Review.";
+            return RedirectToAction(nameof(PendingClaimsForCoordinator), new { searchString });
         }
 
-        // Helper: Check if claim exists
+        [HttpPost]
+        [ValidateAntiForgeryToken]
+        [Authorize(Roles = "Coordinator")]
+        public async Task<IActionResult> SendBack(int id, string? searchString)
+        {
+            var claim = await _context.Claims.FindAsync(id);
+            if (claim == null)
+            {
+                TempData["Error"] = "Claim not found.";
+                return RedirectToAction(nameof(PendingClaimsForCoordinator), new { searchString });
+            }
+
+            claim.Status = ClaimStatus.SentBack;
+            await _context.SaveChangesAsync();
+
+            if (!string.IsNullOrEmpty(claim.UserId))
+                await _notificationService.AddNotificationAsync(claim.UserId, $"Your claim #{claim.Id} has been sent back.");
+
+            TempData["Message"] = "Claim sent back to Lecturer.";
+            return RedirectToAction(nameof(PendingClaimsForCoordinator), new { searchString });
+        }
+
+
+
+
+
+        // -------------------------
+        // Helpers
+        // -------------------------
         private bool ClaimExists(int id) => _context.Claims.Any(e => e.Id == id);
 
-        // Helper: Handle file uploads
         private async Task HandleFileUploads(AppClaim claim, List<IFormFile>? files)
         {
             if (files == null || files.Count == 0) return;
@@ -398,4 +408,3 @@ namespace WebApplication1.Controllers
         }
     }
 }
-

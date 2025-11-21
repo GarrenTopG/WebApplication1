@@ -1,0 +1,32 @@
+﻿@{
+    ViewData["Title"] = "HR Reports";
+}
+
+<h2>Generate Approved Claims Report</h2>
+
+<form asp-action="GenerateReport" method="post" class="mb-3">
+    <div class="row mb-2">
+        <div class="col-md-3">
+            <label for="startDate" class="form-label">From Date</label>
+            <input type="date" name="startDate" class="form-control" required />
+        </div>
+        <div class="col-md-3">
+            <label for="endDate" class="form-label">To Date</label>
+            <input type="date" name="endDate" class="form-control" required />
+        </div>
+        <div class="col-md-3">
+            <label for="format" class="form-label">Report Format</label>
+            <select name="format" class="form-select">
+                <option value="excel">Excel (.xlsx)</option>
+                <option value="pdf">PDF</option>
+            </select>
+        </div>
+    </div>
+
+    <button type="submit" class="btn btn-primary">Generate Report</button>
+</form>
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger">@TempData["Error"]</div>
+}

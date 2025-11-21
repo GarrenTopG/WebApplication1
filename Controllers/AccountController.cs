@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
-using WebApplication1.Models;
 using System.Threading.Tasks;
+using WebApplication1.Models;
 
 namespace WebApplication1.Controllers
 {
@@ -16,109 +16,74 @@ namespace WebApplication1.Controllers
             _signInManager = signInManager;
         }
 
-        // GET: Login
-        [HttpGet]
-        public IActionResult Login()
-        {
-            return View();
-        }
+        [HttpGet] public IActionResult Login() => View();
 
-        // POST: Login
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Login(LoginViewModel model)
         {
-            if (!ModelState.IsValid)
-                return View(model);
+            if (!ModelState.IsValid) return View(model);
 
-            // Try finding user by username first
-            var user = await _userManager.FindByNameAsync(model.UsernameOrEmail);
-            if (user == null)
-            {
-                // If not found, try by email
-                user = await _userManager.FindByEmailAsync(model.UsernameOrEmail);
-            }
+            var user = await _userManager.FindByNameAsync(model.UsernameOrEmail)
+                       ?? await _userManager.FindByEmailAsync(model.UsernameOrEmail);
 
             if (user != null)
             {
                 var result = await _signInManager.PasswordSignInAsync(
-                    user.UserName,
-                    model.Password,
-                    model.RememberMe,
-                    lockoutOnFailure: false);
+                    user.UserName, model.Password, model.RememberMe, false);
 
                 if (result.Succeeded)
                 {
-                    // Redirect based on user role
-                    switch (user.Role)
+                    return user.Role switch
                     {
-                        case "Lecturer":
-                            return RedirectToAction("Index", "Claims"); 
-                        case "Coordinator":
-                            return RedirectToAction("PendingClaims", "Claims"); 
-                        case "Manager":
-                            return RedirectToAction("PendingClaims", "Claims"); 
-                        default:
-                            return RedirectToAction("Index", "Home");
-                    }
-
+                        "Lecturer" => RedirectToAction("Index", "Claims"),
+                        "Coordinator" => RedirectToAction("PendingClaims", "Claims"),
+                        "Manager" => RedirectToAction("PendingClaims", "Claims"),
+                        "HR" => RedirectToAction("Reports", "HR"),
+                        _ => RedirectToAction("Index", "Home")
+                    };
                 }
-
             }
 
             ModelState.AddModelError(string.Empty, "Invalid login attempt.");
             return View(model);
         }
 
-        // GET: Register
-        [HttpGet]
-        public IActionResult Register()
-        {
-            return View();
-        }
+        [HttpGet] public IActionResult Register() => View();
 
-        // POST: Register
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Register(RegisterViewModel model)
         {
-            if (!ModelState.IsValid)
-                return View(model);
+            if (!ModelState.IsValid) return View(model);
 
-            var user = new User
+            if (model.Role == "HR")
             {
-                UserName = model.Username,
-                Email = model.Email,
-                Role = model.Role
-            };
+                ModelState.AddModelError("", "You cannot register as HR.");
+                return View(model);
+            }
 
+            var user = new User { UserName = model.Username, Email = model.Email, Role = model.Role };
             var result = await _userManager.CreateAsync(user, model.Password);
 
             if (result.Succeeded)
             {
-                // Add the user to a role in Identity
-                if (!await _userManager.IsInRoleAsync(user, model.Role))
-                    await _userManager.AddToRoleAsync(user, model.Role);
-
+                await _userManager.AddToRoleAsync(user, model.Role);
                 TempData["Message"] = "Registration successful! Please log in.";
-                return RedirectToAction("Login", "Account");
+                return RedirectToAction("Login");
             }
 
-            foreach (var error in result.Errors)
-                ModelState.AddModelError("", error.Description);
-
+            foreach (var error in result.Errors) ModelState.AddModelError("", error.Description);
             return View(model);
         }
 
-        // POST: Logout
         [HttpPost]
         [ValidateAntiForgeryToken]
         public async Task<IActionResult> Logout()
         {
             await _signInManager.SignOutAsync();
-            return RedirectToAction("Login", "Account");
+            return RedirectToAction("Login");
         }
     }
 }
-
 

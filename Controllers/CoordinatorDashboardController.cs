@@ -1,16 +1,24 @@
 ﻿using Microsoft.AspNetCore.Mvc;
+using Microsoft.EntityFrameworkCore;
+using WebApplication1.Data;
+using WebApplication1.Models;
 
-namespace WebApplication1.Controllers
+public class CoordinatorDashboardController : Controller
 {
-    public class CoordinatorDashboardController : Controller
-    {
-        public IActionResult Index()
-        {
-            if (HttpContext.Session.GetString("Role") != "Coordinator")
-                return RedirectToAction("Login", "Account");
+    private readonly ApplicationDbContext _context;
 
-            return View();
-        }
+    public CoordinatorDashboardController(ApplicationDbContext context)
+    {
+        _context = context;
+    }
+
+    public IActionResult Index()
+    {
+        if (HttpContext.Session.GetString("Role") != "Coordinator")
+            return RedirectToAction("Login", "Account");
+
+        return View();
     }
 }
+
 

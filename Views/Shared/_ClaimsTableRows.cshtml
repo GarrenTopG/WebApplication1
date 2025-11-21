@@ -1,0 +1,62 @@
+﻿@model IEnumerable<WebApplication1.Models.Claim>
+@using WebApplication1.Models
+@using Microsoft.AspNetCore.Identity
+@inject UserManager<User> UserManager
+
+@foreach (var claim in Model)
+{
+    <tr>
+        <td>@claim.LecturerName</td>
+        <td>@claim.HoursWorked</td>
+        <td>@claim.HourlyRate</td>
+        <td>@claim.TotalAmount</td>
+        <td>@claim.SubmittedAt.ToLocalTime().ToString("yyyy-MM-dd HH:mm")</td>
+        <td>
+            <span class="badge
+                      @(claim.Status == ClaimStatus.Submitted ? "bg-warning text-dark" :
+                                      claim.Status == ClaimStatus.UnderReview ? "bg-info text-dark" :
+                                      claim.Status == ClaimStatus.Approved ? "bg-success text-light" :
+                                      claim.Status == ClaimStatus.Rejected ? "bg-danger text-light" :
+                                      claim.Status == ClaimStatus.SentBack ? "bg-secondary text-light" :
+                                      claim.Status == ClaimStatus.Processed ? "bg-primary text-light" : "bg-light")">
+            @claim.Status
+        </span>
+    </td>
+    <td>
+        @* Coordinator Actions *@
+        @if (User.IsInRole("Coordinator"))
+            {
+                if (claim.Status == ClaimStatus.Submitted)
+                {
+                    <a asp-action="SetUnderReview" asp-route-id="@claim.Id" class="btn btn-info btn-sm">Set Under Review</a>
+                    <a asp-action="SendBack" asp-route-id="@claim.Id" class="btn btn-secondary btn-sm">Send Back</a>
+                }
+                else if (claim.Status == ClaimStatus.UnderReview)
+                {
+                    <a asp-action="SendBack" asp-route-id="@claim.Id" class="btn btn-secondary btn-sm">Send Back</a>
+                }
+            }
+
+            @* Manager Actions *@
+            @if (User.IsInRole("Manager"))
+            {
+                if (claim.Status == ClaimStatus.UnderReview)
+                {
+                    <a asp-action="Approve" asp-route-id="@claim.Id" class="btn btn-success btn-sm">Approve</a>
+                    <a asp-action="Reject" asp-route-id="@claim.Id" class="btn btn-danger btn-sm">Reject</a>
+                }
+            }
+
+            @* HR Actions *@
+            @if (User.IsInRole("HR"))
+            {
+                if (claim.Status == ClaimStatus.Approved)
+                {
+                    <a asp-action="MarkProcessed" asp-route-id="@claim.Id" class="btn btn-primary btn-sm">Mark Processed</a>
+                }
+            }
+
+            <a asp-action="Details" asp-route-id="@claim.Id" class="btn btn-info btn-sm">View</a>
+        </td>
+    </tr>
+}
