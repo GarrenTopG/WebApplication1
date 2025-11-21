@@ -1,0 +1,42 @@
+﻿@model WebApplication1.Models.Lecturer
+@{
+    ViewData["Title"] = "Add Lecturer";
+}
+
+<h2>Edit Lecturer</h2>
+
+<form asp-action="Edit" method="post">
+    <div class="mb-3">
+        <label asp-for="FullName" class="form-label"></label>
+        <input asp-for="FullName" class="form-control" />
+        <span asp-validation-for="FullName" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="Email" class="form-label"></label>
+        <input asp-for="Email" class="form-control" />
+        <span asp-validation-for="Email" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="IdNumber" class="form-label"></label>
+        <input asp-for="IdNumber" class="form-control" />
+        <span asp-validation-for="IdNumber" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="DefaultHourlyRate" class="form-label"></label>
+        <input asp-for="DefaultHourlyRate" class="form-control" />
+        <span asp-validation-for="DefaultHourlyRate" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="BankName" class="form-label"></label>
+        <input asp-for="BankName" class="form-control" />
+        <span asp-validation-for="BankName" class="text-danger"></span>
+    </div>
+    <div class="mb-3">
+        <label asp-for="BankAccountNumber" class="form-label"></label>
+        <input asp-for="BankAccountNumber" class="form-control" />
+        <span asp-validation-for="BankAccountNumber" class="text-danger"></span>
+    </div>
+
+    <button type="submit" class="btn btn-success">Edit Lecturer</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+</form>

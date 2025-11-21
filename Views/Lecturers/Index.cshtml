@@ -1,0 +1,39 @@
+﻿@model IEnumerable<WebApplication1.Models.Lecturer>
+@{
+    ViewData["Title"] = "Lecturers";
+}
+
+<h2>Lecturers</h2>
+
+<a asp-action="Create" class="btn btn-primary mb-3">Add New Lecturer</a>
+
+<table class="table table-bordered table-hover">
+    <thead>
+        <tr>
+            <th>Name</th>
+            <th>Email</th>
+            <th>ID Number</th>
+            <th>Hourly Rate</th>
+            <th>Bank</th>
+            <th>Account Number</th>
+            <th>Actions</th>
+        </tr>
+    </thead>
+    <tbody>
+        @foreach (var lecturer in Model)
+        {
+            <tr>
+                <td>@lecturer.FullName</td>
+                <td>@lecturer.Email</td>
+                <td>@lecturer.IdNumber</td>
+                <td>@lecturer.DefaultHourlyRate.ToString("C")</td>
+                <td>@lecturer.BankName</td>
+                <td>@lecturer.BankAccountNumber</td>
+                <td>
+                    <a asp-action="Edit" asp-route-id="@lecturer.Id" class="btn btn-warning btn-sm me-1">Edit</a>
+                    <a asp-action="Delete" asp-route-id="@lecturer.Id" class="btn btn-danger btn-sm">Delete</a>
+                </td>
+            </tr>
+        }
+    </tbody>
+</table>

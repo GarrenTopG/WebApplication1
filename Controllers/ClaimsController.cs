@@ -92,6 +92,32 @@ namespace WebApplication1.Controllers
             claim.UserId = User.FindFirstValue(ClaimTypes.NameIdentifier);
             claim.LecturerName = User.Identity?.Name ?? "Unknown Lecturer";
 
+            var userEmail = User.Identity?.Name;
+
+            if (!string.IsNullOrEmpty(userEmail))
+            {
+                var lecturer = await _context.Lecturers
+                    .FirstOrDefaultAsync(l => l.Email == userEmail);
+
+                if (lecturer != null)
+                {
+                    claim.HourlyRate = lecturer.DefaultHourlyRate;
+                }
+            }
+
+            // Get the current user's email safely
+
+            if (!string.IsNullOrEmpty(userEmail))
+            {
+                var lecturer = await _context.Lecturers
+                    .FirstOrDefaultAsync(l => l.Email == userEmail);
+
+                if (lecturer != null)
+                {
+                    claim.HourlyRate = lecturer.DefaultHourlyRate;
+                }
+            }
+
             if (claim.SubmittedAt == default)
                 claim.SubmittedAt = DateTime.UtcNow;
 

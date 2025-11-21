@@ -1,0 +1,15 @@
+﻿@model WebApplication1.Models.Lecturer
+@{
+    ViewData["Title"] = "Delete Lecturer";
+}
+
+<h2>Delete Lecturer</h2>
+
+<p>Are you sure you want to delete <strong>@Model.FullName</strong>?</p>
+
+<form asp-action="DeleteConfirmed" method="post">
+    <input type="hidden" asp-for="Id" />
+    <button type="submit" class="btn btn-danger">Delete</button>
+    <a asp-action="Index" class="btn btn-secondary">Cancel</a>
+</form>
+

@@ -4,6 +4,19 @@
 
 <h2 class="mb-4">Generate Approved Claims Report</h2>
 
+<!-- HR TOOLS BANNER -->
+@if (User.IsInRole("HR"))
+{
+    <div style="background:#f8f9fa; padding:15px; border-radius:6px; margin-bottom:20px; border:1px solid #ddd;">
+        <strong>HR Tools:</strong>
+
+        <!-- Correct link for LecturersController -->
+        <a asp-controller="Lecturers" asp-action="Index" class="btn btn-sm btn-secondary ms-3">
+            Manage Lecturers
+        </a>
+    </div>
+}
+
 <form asp-action="GenerateReport" method="post" class="mb-4">
     <div class="row g-3">
         <div class="col-md-3">
